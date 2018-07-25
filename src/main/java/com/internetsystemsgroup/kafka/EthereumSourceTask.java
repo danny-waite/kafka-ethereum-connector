@@ -27,6 +27,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.Gson;
+
+// import org.apache.kafka.common.requests.TransactionResult;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
@@ -35,6 +38,9 @@ import org.slf4j.LoggerFactory;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameter;
 import org.web3j.protocol.core.methods.response.EthBlock;
+import org.web3j.protocol.core.methods.response.EthBlock.Block;
+import org.web3j.protocol.core.methods.response.EthBlock.TransactionObject;
+import org.web3j.protocol.core.methods.response.EthBlock.TransactionResult;
 import org.web3j.protocol.http.HttpService;
 
 /**
@@ -111,29 +117,65 @@ public class EthereumSourceTask extends SourceTask {
      * @param block
      *            the block
      */
-    private void writeBlockToPipe(EthBlock block)
+    private void writeBlockToPipe(EthBlock b)
     {
-        log.info("Writing block: " + block.getBlock().getNumber());
+        Block block = b.getBlock();
+        List<TransactionResult> transactions = b.getResult().getTransactions();
 
-        for (EthBlock.TransactionResult tx : block.getResult().getTransactions())
+        log.info("Writing block: " + block.getNumber());
+
+        Gson gson = new Gson();  
+
+        for (EthBlock.TransactionResult tx : transactions)
         {
             EthBlock.TransactionObject txObj = (EthBlock.TransactionObject) tx;
 
             log.info("Writing transaction: " + txObj.getTransactionIndex());
-            pw.println(
-                    txObj.getHash() + "," +
-                    txObj.getFrom() + "," +
-                    txObj.getTo() + "," +
-                    txObj.getValue() + "," +
-                    txObj.getGasPrice() + "," +
-                    txObj.getGas() + "," +
-                    txObj.getInput() + "," +
-                    txObj.getCreates() + "," +
-                    txObj.getRaw()
-            );
+
+            BlockMessage message = translateTransaction(block, txObj);
+
+            String json = gson.toJson(message); 
+
+            pw.println(json);
         }
 
         pw.flush();  // TODO is this needed
+    }
+
+    private BlockMessage translateTransaction(Block block, TransactionObject tx) {
+        BlockMessage message = new BlockMessage();
+
+        message.setBlockNumber(block.getNumber());;
+        message.setBlockHash(block.getHash());;
+        message.setBlockParentHash(block.getParentHash());;
+        message.setBlockNonce(block.getNonce());;
+        message.setBlockSha3Uncles(block.getSha3Uncles());;
+        message.setBlockLogsBloom(block.getLogsBloom());;
+        message.setBlockTransactionsRoot(block.getTransactionsRoot());;
+        message.setBlockStateRoot(block.getStateRoot());;
+        message.setBlockReceiptsRoot(block.getReceiptsRoot());;
+        message.setBlockAuthor(block.getAuthor());;
+        message.setBlockMiner(block.getMiner());;
+        message.setBlockMixHash(block.getMixHash());;
+        message.setBlockDifficulty(block.getDifficulty());;
+        message.setBlockTotalDifficulty(block.getTotalDifficulty());;
+        message.setBlockExtraData(block.getExtraData());;
+        message.setBlockSize(block.getSize());;
+        message.setBlockGasLimit(block.getGasLimit());;
+        message.setBlockGasUsed(block.getGasUsed());;
+        message.setBlockTimestamp(block.getTimestamp());;
+
+        message.setHash(tx.getHash());
+        message.setFrom(tx.getFrom());
+        message.setTo(tx.getTo());
+        message.setValue(tx.getValue());
+        message.setGasPrice(tx.getGasPrice());
+        message.setGas(tx.getGas());
+        message.setInput(tx.getInput());
+        message.setCreates(tx.getCreates());
+        message.setRaw(tx.getRaw());
+
+        return message;
     }
 
     @Override
