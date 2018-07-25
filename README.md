@@ -6,7 +6,7 @@ This connector reads transactions from the Ethereum blockchain and writes them t
 
     >mvn clean package
         
-## Running the connector
+## Running locally
 
 1. Install Kafka
 
@@ -49,3 +49,11 @@ The following instructions assume the following directory structure:
    >../kafka_2.12-1.1.0/bin/connect-standalone.sh config/connect-standalone.properties config/connect-ethereum-source.properties 
    
 8. Verify that transactions are being printed in the subscriber (See step 6. above)   
+
+## Running in Docker
+
+```
+mvn clean package
+docker-compose up -d
+```
+

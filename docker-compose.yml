@@ -1,0 +1,35 @@
+version: '2'
+services:
+  zookeeper:
+    image: 31z4/zookeeper:3.4.8
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: ches/kafka
+    hostname: kafka
+    container_name: kafka
+    links:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 0
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ADVERTISED_PORT: 9092
+      ZOOKEEPER_CONNECTION_STRING: zookeeper:2181
+      ZOOKEEPER_CHROOT: /broker-0
+
+  connect:
+    build: .
+    image: dannywaite/kafka-ethereum-connector 
+    hostname: connect
+    container_name: connect
+    links:
+      - kafka
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
+      CONNECT_GROUP_ID: connect-cluster-A
+      CONNECT_PLUGIN_PATH: /usr/share/java
